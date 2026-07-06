@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Nutrition Planner — FitPulse{% endblock %}
+{% block content %}
+<div class="container-fluid py-4 px-3 px-lg-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h4 class="fw-800 mb-0"><i class="fas fa-apple-alt me-2 text-success"></i>Nutrition Planner</h4>
+      <p class="text-muted mb-0">Track calories, macros, water, and generate AI meal plans</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#logMealModal">
+        <i class="fas fa-plus me-1"></i>Log Meal
+      </button>
+      <button class="btn btn-success" onclick="generateMealPlan()">
+        <i class="fas fa-robot me-1"></i>AI Meal Plan
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="stat-card stat-card-orange">
+        <div class="stat-card-icon"><i class="fas fa-fire"></i></div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">{{ total_cal }}</div>
+          <div class="stat-card-label">Calories / {{ target_calories }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-card-icon"><i class="fas fa-drumstick-bite"></i></div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">{{ total_prot }}g</div>
+          <div class="stat-card-label">Protein</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card stat-card-green">
+        <div class="stat-card-icon"><i class="fas fa-bread-slice"></i></div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">{{ total_carbs }}g</div>
+          <div class="stat-card-label">Carbs</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-card stat-card-cyan">
+        <div class="stat-card-icon"><i class="fas fa-tint"></i></div>
+        <div class="stat-card-body">
+          <div class="stat-card-value">{{ (total_water/1000)|round(1) }}L</div>
+          <div class="stat-card-label">Water / {{ (target_water/1000)|round(1) }}L</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calorie Progress Bar -->
+  <div class="card fitcard mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between mb-2">
+        <span class="fw-600">Calorie Goal Progress</span>
+        <span class="text-muted">{{ total_cal }} / {{ target_calories }} kcal</span>
+      </div>
+      {% set pct = [((total_cal / target_calories * 100) if target_calories > 0 else 0)|int, 100]|min %}
+      <div class="progress mb-1" style="height:12px;border-radius:8px;">
+        <div class="progress-bar {% if pct > 100 %}bg-danger{% elif pct > 80 %}bg-warning{% else %}bg-success{% endif %}"
+             style="width:{{ pct }}%;border-radius:8px;transition:width .6s ease;"></div>
+      </div>
+      <small class="text-muted">{{ pct }}% of daily goal</small>
+    </div>
+  </div>
+
+  <!-- Water Tracker -->
+  <div class="card fitcard mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-700 mb-0"><i class="fas fa-tint me-2 text-info"></i>Water Intake Tracker</h6>
+        <button class="btn btn-sm btn-info text-white" onclick="logWater(250)">
+          <i class="fas fa-plus me-1"></i>+250ml
+        </button>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        {% for i in range(8) %}
+        <div class="water-glass {% if (i * 250) < total_water %}filled{% endif %}" id="glass{{ i }}">
+          <i class="fas fa-tint"></i>
+          <span>250ml</span>
+        </div>
+        {% endfor %}
+      </div>
+      <small class="text-muted mt-2 d-block">{{ total_water }}ml / {{ target_water }}ml — target 8 glasses</small>
+    </div>
+  </div>
+
+  <!-- AI Meal Plan Card -->
+  <div class="card fitcard mb-4 d-none" id="aiMealCard">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-700 mb-0"><i class="fas fa-robot me-2 text-success"></i>Your AI-Generated Meal Plan</h6>
+        <button class="btn btn-sm btn-ghost-icon" onclick="document.getElementById('aiMealCard').classList.add('d-none')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div id="aiMealContent" class="markdown-body"></div>
+    </div>
+  </div>
+
+  <!-- Meal Logs -->
+  <div class="card fitcard">
+    <div class="card-body">
+      <h6 class="fw-700 mb-3"><i class="fas fa-utensils me-2 text-success"></i>Today's Food Log</h6>
+      {% if logs %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr><th>Meal</th><th>Food Item</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for m in logs %}
+            <tr>
+              <td><span class="badge meal-badge-{{ m.meal_type.lower() }}">{{ m.meal_type }}</span></td>
+              <td class="fw-600">{{ m.food_item }}</td>
+              <td>{{ m.calories }} kcal</td>
+              <td>{{ m.protein }}g</td>
+              <td>{{ m.carbs }}g</td>
+              <td>{{ m.fat }}g</td>
+              <td>
+                <button class="btn btn-sm btn-ghost-icon text-danger" onclick="deleteNutrition({{ m.id }}, this)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="fas fa-apple-alt fa-2x"></i>
+        <p>No meals logged for today. Start tracking your nutrition!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Log Meal Modal -->
+<div class="modal fade" id="logMealModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-700"><i class="fas fa-utensils me-2"></i>Log Meal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-600">Meal Type</label>
+          <select id="mealType" class="form-select">
+            <option>Breakfast</option><option>Lunch</option>
+            <option>Dinner</option><option>Snack</option><option>Pre-workout</option><option>Post-workout</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-600">Food Item</label>
+          <input type="text" id="foodItem" class="form-control" placeholder="e.g. Dal Rice, Oatmeal, Paneer"/>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label fw-600">Calories (kcal)</label>
+            <input type="number" id="mCal" class="form-control" value="0" min="0"/>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-600">Protein (g)</label>
+            <input type="number" id="mProt" class="form-control" value="0" min="0"/>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-600">Carbs (g)</label>
+            <input type="number" id="mCarbs" class="form-control" value="0" min="0"/>
+          </div>
+          <div class="col-6">
+            <label class="form-label fw-600">Fat (g)</label>
+            <input type="number" id="mFat" class="form-control" value="0" min="0"/>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-600">Water (ml)</label>
+          <input type="number" id="mWater" class="form-control" value="0" min="0" placeholder="Water consumed with this meal"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="logMeal()">
+          <i class="fas fa-save me-1"></i>Save Meal
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
