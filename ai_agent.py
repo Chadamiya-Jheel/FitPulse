@@ -147,15 +147,34 @@ _CHAT_CAPABLE_MODELS = {
 
 
 class FitPulseAgent:
-    """Wrapper around IBM watsonx.ai ModelInference for FitPulse."""
+    """Wrapper around IBM watsonx.ai ModelInference for FitPulse.
+
+    Credentials are read lazily via properties so that load_dotenv() in
+    app.py always wins regardless of module import order.
+    """
 
     def __init__(self):
-        self.api_key    = os.getenv("WATSONX_API_KEY", "")
-        self.project_id = os.getenv("WATSONX_PROJECT_ID", "")
-        self.url        = os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com")
-        self.model_id   = os.getenv("WATSONX_MODEL_ID", "meta-llama/llama-3-3-70b-instruct")
-        self._client    = None
-        self._model     = None
+        # Do NOT call os.getenv here — .env may not be loaded yet at import time.
+        self._client = None
+        self._model  = None
+        self._cached_model_id = None  # track when model_id changes
+
+    # ── Lazy credential properties ────────────────────────────
+    @property
+    def api_key(self) -> str:
+        return os.getenv("WATSONX_API_KEY", "").strip()
+
+    @property
+    def project_id(self) -> str:
+        return os.getenv("WATSONX_PROJECT_ID", "").strip()
+
+    @property
+    def url(self) -> str:
+        return os.getenv("WATSONX_URL", "https://au-syd.ml.cloud.ibm.com").rstrip("/")
+
+    @property
+    def model_id(self) -> str:
+        return os.getenv("WATSONX_MODEL_ID", "meta-llama/llama-3-3-70b-instruct").strip()
 
     @property
     def _supports_chat(self) -> bool:
@@ -163,7 +182,8 @@ class FitPulseAgent:
         return self.model_id in _CHAT_CAPABLE_MODELS
 
     def _get_model(self) -> ModelInference:
-        if self._model is None:
+        # Rebuild if model_id changed or not yet created
+        if self._model is None or self._cached_model_id != self.model_id:
             credentials = Credentials(
                 url=self.url,
                 api_key=self.api_key,
@@ -174,6 +194,7 @@ class FitPulseAgent:
                 credentials=credentials,
                 project_id=self.project_id,
             )
+            self._cached_model_id = self.model_id
         return self._model
 
     # ----------------------------------------------------------
