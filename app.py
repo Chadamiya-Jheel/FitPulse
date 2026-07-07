@@ -48,22 +48,6 @@ def inject_globals():
 
 
 # ── Helpers ───────────────────────────────────────────────────
-def _safe_float(val, default: float = 0.0) -> float:
-    """Convert val to float; return default on empty string, None, or bad value."""
-    try:
-        return float(val)
-    except (TypeError, ValueError):
-        return default
-
-
-def _safe_int(val, default: int = 0) -> int:
-    """Convert val to int via float first; return default on bad value."""
-    try:
-        return int(float(val))
-    except (TypeError, ValueError):
-        return default
-
-
 def _today_stats(user: User) -> dict:
     today = date.today()
     calories_burned = (
@@ -326,8 +310,8 @@ def log_workout():
         user_id      = current_user.id,
         date         = date.fromisoformat(data.get("date", str(date.today()))),
         workout_type = data.get("workout_type", ""),
-        duration     = _safe_int(data.get("duration", 0)),
-        calories     = _safe_int(data.get("calories", 0)),
+        duration     = int(data.get("duration", 0)),
+        calories     = int(data.get("calories", 0)),
         notes        = data.get("notes", ""),
         completed    = bool(data.get("completed", True)),
     )
@@ -381,15 +365,15 @@ def nutrition():
 def log_nutrition():
     data = request.get_json(force=True)
     log  = NutritionLog(
-        user_id   = current_user.id,
-        date      = date.fromisoformat(data.get("date", str(date.today()))),
+        user_id  = current_user.id,
+        date     = date.fromisoformat(data.get("date", str(date.today()))),
         meal_type = data.get("meal_type", ""),
         food_item = data.get("food_item", ""),
-        calories  = _safe_int(data.get("calories", 0)),
-        protein   = _safe_float(data.get("protein", 0)),
-        carbs     = _safe_float(data.get("carbs", 0)),
-        fat       = _safe_float(data.get("fat", 0)),
-        water_ml  = _safe_int(data.get("water_ml", 0)),
+        calories  = int(data.get("calories", 0)),
+        protein   = float(data.get("protein", 0)),
+        carbs     = float(data.get("carbs", 0)),
+        fat       = float(data.get("fat", 0)),
+        water_ml  = int(data.get("water_ml", 0)),
     )
     db.session.add(log)
     db.session.commit()
@@ -478,7 +462,7 @@ def log_habit():
         date       = date.fromisoformat(data.get("date", str(date.today()))),
         habit_name = data.get("habit_name", ""),
         completed  = bool(data.get("completed", False)),
-        value      = _safe_float(data.get("value", 0)),
+        value      = float(data.get("value", 0)),
         unit       = data.get("unit", ""),
     )
     db.session.add(log)
@@ -565,7 +549,4 @@ if __name__ == "__main__":
         port  = int(os.getenv("PORT", 5000)),
         debug = os.getenv("FLASK_DEBUG", "0") == "1",
     )
-<<<<<<< HEAD
-=======
-    
->>>>>>> dbfe4effb33d12af232fece59a165609db49543a
+
