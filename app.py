@@ -565,3 +565,7 @@ if __name__ == "__main__":
         port  = int(os.getenv("PORT", 5000)),
         debug = os.getenv("FLASK_DEBUG", "0") == "1",
     )
+<<<<<<< HEAD
+=======
+    
+>>>>>>> dbfe4effb33d12af232fece59a165609db49543a
