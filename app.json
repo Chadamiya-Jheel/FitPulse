@@ -1,0 +1,105 @@
+{
+  "name": "FitPulse",
+  "description": "AI-Powered Fitness Buddy — personalized workout plans, nutrition guidance, BMI/BMR calculator, habit tracker, and 24/7 AI coaching powered by IBM watsonx.ai Granite models.",
+  "keywords": [
+    "fitness",
+    "ai",
+    "ibm-watsonx",
+    "granite",
+    "flask",
+    "nutrition",
+    "workout",
+    "health"
+  ],
+  "website": "https://github.com/your-username/fitpulse",
+  "repository": "https://github.com/your-username/fitpulse",
+  "logo": "https://raw.githubusercontent.com/your-username/fitpulse/main/static/img/logo.png",
+  "success_url": "/",
+
+  "stack": "container",
+
+  "buildpacks": [],
+
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+
+  "image": "heroku/python",
+
+  "environments": {
+    "test": {
+      "scripts": {
+        "test": "python -m pytest tests/ -v"
+      }
+    }
+  },
+
+  "scripts": {
+    "postdeploy": "flask init-db"
+  },
+
+  "env": {
+    "SECRET_KEY": {
+      "description": "A long random string used to sign Flask sessions. Generate with: python -c \"import secrets; print(secrets.token_hex(32))\"",
+      "generator": "secret",
+      "required": true
+    },
+    "FLASK_ENV": {
+      "description": "Flask environment. Use 'production' for live deployments.",
+      "value": "production",
+      "required": true
+    },
+    "FLASK_DEBUG": {
+      "description": "Enable Flask debug mode. Must be 0 in production.",
+      "value": "0",
+      "required": false
+    },
+    "DATABASE_URL": {
+      "description": "SQLAlchemy database connection string. Defaults to SQLite for local use.",
+      "value": "sqlite:///fitpulse.db",
+      "required": false
+    },
+    "WATSONX_API_KEY": {
+      "description": "IBM Cloud IAM API Key. Get it from https://cloud.ibm.com/iam/apikeys — format: ApiKey-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "required": false
+    },
+    "WATSONX_PROJECT_ID": {
+      "description": "IBM watsonx.ai Project ID. Found under your project's Manage tab at https://dataplatform.cloud.ibm.com",
+      "required": false
+    },
+    "WATSONX_URL": {
+      "description": "IBM watsonx.ai regional endpoint. Format: https://<region>.ml.cloud.ibm.com (no trailing slash). Common values: https://us-south.ml.cloud.ibm.com, https://eu-de.ml.cloud.ibm.com, https://au-syd.ml.cloud.ibm.com",
+      "value": "https://au-syd.ml.cloud.ibm.com",
+      "required": false
+    },
+    "WATSONX_MODEL_ID": {
+      "description": "IBM Granite or LLaMA model ID to use for chat. Must support the /text/chat endpoint. Confirmed working: meta-llama/llama-3-3-70b-instruct",
+      "value": "meta-llama/llama-3-3-70b-instruct",
+      "required": false
+    },
+    "APP_NAME": {
+      "description": "Display name for the application.",
+      "value": "FitPulse",
+      "required": false
+    },
+    "MAX_CHAT_HISTORY": {
+      "description": "Maximum number of past chat messages sent to the AI model per request.",
+      "value": "20",
+      "required": false
+    },
+    "PORT": {
+      "description": "Port the gunicorn server listens on. Set automatically by most platforms.",
+      "value": "5000",
+      "required": false
+    }
+  },
+
+  "addons": [],
+
+  "buildpack": {
+    "url": "heroku/python"
+  }
+}
